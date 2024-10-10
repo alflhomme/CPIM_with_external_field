@@ -33,6 +33,9 @@
    we should have 1/2 if we do not want to double count pairs,
    therefore use a positive number! */
 #define COUPLING (1)
+#define COUPLING_STEP 0.01
+#define COUPLING_MIN -1.0
+#define COUPLING_MAX 1.0
 /* Default temperature and scale ranges */
 #define TEMPERATURE 2.27
 #define TEMPERATURE_STEP 0.0000001
@@ -585,26 +588,26 @@ static void on_radio_NNNN(GtkWidget *button, gpointer data)
 }
 
 
-/* Callback to change Ising J = -kB (ferro) vs J = +kB (anti-ferro) -- dirty
-   get_active() method is cleaner as I could use only one handler */
-/* Ferro: J = -kB */
-static void on_radio_ferro(GtkWidget *button, gpointer data)
-{
-    char *id_radio = (char *)data;
-    g_print("%s\n", id_radio);
-    s.J = -1 * (float)COUPLING;
-    set_transition_probs();
-}
+// /* Callback to change Ising J = -kB (ferro) vs J = +kB (anti-ferro) -- dirty
+//    get_active() method is cleaner as I could use only one handler */
+// /* Ferro: J = -kB */
+// static void on_radio_ferro(GtkWidget *button, gpointer data)
+// {
+//     char *id_radio = (char *)data;
+//     g_print("%s\n", id_radio);
+//     s.J = -1 * (float)COUPLING;
+//     set_transition_probs();
+// }
 
 
-/* Anti-Ferro: J = +kB */
-static void on_radio_anti_ferro(GtkWidget *button, gpointer data)
-{
-    char *id_radio = (char *)data;
-    g_print("%s\n", id_radio);
-    s.J = 1 * (float)COUPLING;
-    set_transition_probs();
-}
+// /* Anti-Ferro: J = +kB */
+// static void on_radio_anti_ferro(GtkWidget *button, gpointer data)
+// {
+//     char *id_radio = (char *)data;
+//     g_print("%s\n", id_radio);
+//     s.J = 1 * (float)COUPLING;
+//     set_transition_probs();
+// }
 
 
 /* Callback to respond to Gtk scale slide move event */
@@ -636,6 +639,15 @@ static void temperature_scale_moved(GtkRange *range, gpointer user_data)
 {
     gdouble pos = gtk_range_get_value(range);
     s.T = (float)pos;
+    set_transition_probs();
+}
+
+
+/* Callback to respond to Gtk scale slide move event */
+static void coupling_scale_moved(GtkRange *range, gpointer user_data)
+{
+    gdouble pos = gtk_range_get_value(range);
+    s.J = (float)pos;
     set_transition_probs();
 }
 
@@ -743,29 +755,31 @@ static void activate(GtkApplication *app, gpointer user_data)
     separator = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
     gtk_grid_attach(GTK_GRID(grid), separator, 1, 0, 1, 2);
     
-    /* Create another Frame for the Coupling Strength
-    (ferro vs anti-ferro magnetic) */
-    frame = gtk_frame_new("Coupling strength");
-    gtk_frame_set_label_align(GTK_FRAME(frame), 1, 0);
-    /* Create a box to hold stuff together */
-    box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    /* Create a radio button for the ferro magnetic case */
-    radio = gtk_radio_button_new_with_label(NULL, "  J = - 1 * kB");
-    g_signal_connect(GTK_TOGGLE_BUTTON(radio), "pressed", G_CALLBACK(on_radio_ferro), (gpointer)"Ferro-Magnetic (J < 0) interaction selected");
-    gtk_box_pack_start(GTK_BOX(box), radio, TRUE, TRUE, 0);
-    /* Create a radio button for the anti-ferro magnetic case */
-    radio = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radio), "  J = +1 * kB");
-    g_signal_connect(GTK_TOGGLE_BUTTON(radio), "pressed", G_CALLBACK(on_radio_anti_ferro), (gpointer)"Anti-Ferro-Magnetic (J > 0) interaction selected");
-    gtk_box_pack_start(GTK_BOX(box), radio, TRUE, TRUE, 0);
-    /* Add the packing box to the Coupling strength Frame */
-    gtk_container_add(GTK_CONTAINER(frame), box);
-    gtk_grid_attach(GTK_GRID(grid), frame, 2, 0, 1, 2);
+    // /* Create another Frame for the Coupling Strength
+    // (ferro vs anti-ferro magnetic) */
+    // frame = gtk_frame_new("Coupling strength");
+    // gtk_frame_set_label_align(GTK_FRAME(frame), 1, 0);
+    // /* Create a box to hold stuff together */
+    // box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    // /* Create a radio button for the ferro magnetic case */
+    // radio = gtk_radio_button_new_with_label(NULL, "  J = - 1 * kB");
+    // g_signal_connect(GTK_TOGGLE_BUTTON(radio), "pressed", G_CALLBACK(on_radio_ferro), (gpointer)"Ferro-Magnetic (J < 0) interaction selected");
+    // gtk_box_pack_start(GTK_BOX(box), radio, TRUE, TRUE, 0);
+    // /* Create a radio button for the anti-ferro magnetic case */
+    // radio = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radio), "  J = +1 * kB");
+    // g_signal_connect(GTK_TOGGLE_BUTTON(radio), "pressed", G_CALLBACK(on_radio_anti_ferro), (gpointer)"Anti-Ferro-Magnetic (J > 0) interaction selected");
+    // gtk_box_pack_start(GTK_BOX(box), radio, TRUE, TRUE, 0);
+    // /* Add the packing box to the Coupling strength Frame */
+    // gtk_container_add(GTK_CONTAINER(frame), box);
+    // gtk_grid_attach(GTK_GRID(grid), frame, 2, 0, 1, 2);
 
     /* Now we are done with pre-packing the radio choices in Frames */
 
     /* Contact Process (CP) Box */
     /* to control the parameters of the Contact Process */
+
     box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+
     /* BIRTH */
     /* Scale bar to set birth rate */
     scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, (gdouble)BETA_MIN, (gdouble)BETA_MAX, (gdouble)BETA_STEP);
@@ -777,6 +791,7 @@ static void activate(GtkApplication *app, gpointer user_data)
     gtk_container_add(GTK_CONTAINER(frame), scale);
     /* Add that Frame to the CP box */
     gtk_container_add(GTK_CONTAINER(box), frame);
+
     /* DEATH */
     /* Scale bar to set death rate */
     scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, (gdouble)DELTA_MIN, (gdouble)DELTA_MAX, (gdouble)DELTA_STEP);
@@ -788,6 +803,7 @@ static void activate(GtkApplication *app, gpointer user_data)
     gtk_container_add(GTK_CONTAINER(frame), scale);
     /* Add that Frame to the CP box */
     gtk_container_add(GTK_CONTAINER(box), frame);
+
     /* ALPHA */
     /* Scale bar to set the cell differentiation rate */
     scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, (gdouble)ALPHA_MIN, (gdouble)ALPHA_MAX, (gdouble)ALPHA_STEP);
@@ -806,7 +822,9 @@ static void activate(GtkApplication *app, gpointer user_data)
 
     /* Ising Model (IM) Box */
     /* to control the parameters of the Ising model */
+
     box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+
     /* TEMPERATURE */
     /* Create a scale bar to set Temperature */
     scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, (gdouble)TEMPERATURE_MIN, (gdouble)TEMPERATURE_MAX, (gdouble)TEMPERATURE_STEP);
@@ -816,6 +834,16 @@ static void activate(GtkApplication *app, gpointer user_data)
     frame = gtk_frame_new("Temperature");
     gtk_container_add(GTK_CONTAINER(frame), scale);
     gtk_container_add(GTK_CONTAINER(box), frame);
+
+    /* COUPLING STRENGTH */
+    scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, (gdouble)COUPLING_MIN, (gdouble)COUPLING_MAX, (gdouble)COUPLING_STEP);
+    /* Set it to its default value */
+    gtk_range_set_value(GTK_RANGE(scale), (gfloat) -1 * COUPLING);
+    g_signal_connect(scale, "value-changed", G_CALLBACK(coupling_scale_moved), NULL);
+    frame = gtk_frame_new("Coupling strength");
+    gtk_container_add(GTK_CONTAINER(frame), scale);
+    gtk_container_add(GTK_CONTAINER(box), frame);
+
     /* EXTERNAL FIELD */
     scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, (gdouble)EXTERNAL_FIELD_MIN, (gdouble)EXTERNAL_FIELD_MAX, (gdouble)EXTERNAL_FIELD_STEP);
     gtk_range_set_value(GTK_RANGE(scale), (gfloat)EXTERNAL_FIELD);
